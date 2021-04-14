@@ -9,7 +9,7 @@
 noreturn void runserver(const int listen_fd) {
     init_new_connections();
     if (init_threads() == -1) {
-        exit(0);
+        exit(EXIT_FAILURE);
     }
     for (;;) {
         struct sockaddr_in conn_addr;
