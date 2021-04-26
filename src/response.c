@@ -34,6 +34,12 @@ http_response_t process_request(const http_request_t *request) {
         response.message = "Not Implemented";
     }
 
+    if (response.file == NULL) {
+        char buffer[PATH_MAX];
+        sprintf(buffer, "/%d.html", response.status);
+        response.file = find_static(buffer);
+    }
+
     if (response.file != NULL) {
         struct stat st;
         stat(response.file, &st);
@@ -58,7 +64,6 @@ void handle_get_request(const http_request_t *request, http_response_t *buffer) 
     } else {
         buffer->status = 404;
         buffer->message = "Not Found";
-        buffer->file = find_static(PAGE404_PATH);
     }
 }
 
