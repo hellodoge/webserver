@@ -188,6 +188,9 @@ void destruct_threads(void) {
             connection = connection->next;
         }
     }
+    free(thread_poll);
+    thread_poll = NULL;
+    threads_count = 0;
 }
 
 void destruct_connection(connection_t *connection) {
