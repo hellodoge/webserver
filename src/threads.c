@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-#define THREADS_COUNT 8
 #define CONNECTION_TIMEOUT 120 /* seconds */
 
 #define SIG_NEW_CONNECTION SIGUSR1
@@ -27,7 +26,8 @@ typedef struct {
 } server_thread_t;
 
 
-server_thread_t thread_poll[THREADS_COUNT];
+server_thread_t *thread_poll;
+unsigned int threads_count;
 
 /// initialized in init_threads
 sigset_t original_signal_mask, mask_sig_new_connection_blocked;
@@ -48,7 +48,7 @@ noreturn void *thread_run(void *thread) {
 void distribute_new_requests(void) {
     unsigned int min_active_connections = thread_poll[0].active_connections_count;
     pthread_t *chosen_thread = &thread_poll[0].thread;
-    for (size_t i = 1; i < THREADS_COUNT; i++) {
+    for (size_t i = 1; i < threads_count; i++) {
         if (min_active_connections > thread_poll[i].active_connections_count) {
             min_active_connections = thread_poll[i].active_connections_count;
             chosen_thread = &thread_poll[i].thread;
@@ -150,14 +150,16 @@ void destruct_threads(void);
 void handle_new_connection_signal() {}
 
 /// must only be called after call of init_new_connections defined in connection.h
-int init_threads(void) {
+int init_threads(const unsigned int count) {
     signal(SIG_NEW_CONNECTION, handle_new_connection_signal);
     sigprocmask(0 /*ignored because second argument is NULL*/, NULL, &original_signal_mask);
     sigemptyset(&mask_sig_new_connection_blocked);
     sigaddset(&mask_sig_new_connection_blocked, SIG_NEW_CONNECTION);
-    bzero(thread_poll, sizeof(thread_poll));
+    threads_count = count;
+    thread_poll = malloc(sizeof(*thread_poll) * count);
+    bzero(thread_poll, sizeof(*thread_poll) * count);
     atexit(destruct_threads);
-    for (size_t i = 0; i < THREADS_COUNT; i++) {
+    for (size_t i = 0; i < count; i++) {
         thread_poll[i].active_connections_count = ATOMIC_VAR_INIT(0);
         if (pthread_create(&thread_poll[i].thread, NULL,
                            thread_run, &thread_poll[i].thread) != 0) {
@@ -170,7 +172,7 @@ int init_threads(void) {
 
 
 void destruct_threads(void) {
-    for (size_t i = 0; i < THREADS_COUNT; i++) {
+    for (size_t i = 0; i < threads_count; i++) {
         if (thread_poll[i].initialized == false)
             break;
         pthread_kill(thread_poll[i].thread, SIGKILL);

@@ -9,20 +9,22 @@
 #include <errno.h>
 
 #define DEFAULT_PORT 8080
+#define DEFAULT_THREADS_COUNT 8
 
 
 void print_help_message_and_exit(const char *executable) {
-    printf("usage: %s -p <port> -r <website root directory>", executable);
+    printf("usage: %s -p <port> -r <website root directory> -t <count of threads>", executable);
     exit(EXIT_FAILURE);
 }
 
 int main(int argc, char **argv) {
     int port = DEFAULT_PORT;
+    unsigned int threads_count = DEFAULT_THREADS_COUNT;
     char *path = NULL;
 
     const char *executable = argv[0];
     int current_opt;
-    while ((current_opt = getopt(argc, argv, "p:r:")) != -1) {
+    while ((current_opt = getopt(argc, argv, "p:r:t:")) != -1) {
         switch (current_opt) {
             case 'p':
                 errno = 0; // can be set to non zero value by strtol
@@ -32,6 +34,12 @@ int main(int argc, char **argv) {
                 break;
             case 'r':
                 path = optarg;
+                break;
+            case 't':
+                errno = 0; // can be set to non zero value by strtol
+                threads_count = strtol(optarg, NULL, 10);
+                if (errno != 0)
+                    print_help_message_and_exit(executable);
                 break;
             case '?':
                 print_help_message_and_exit(executable);
@@ -56,5 +64,5 @@ int main(int argc, char **argv) {
 	}
 
 	printf("Starting serving %s at http://127.0.0.1:%d\n", get_root(), port);
-	runserver(fd);
+	runserver(fd, threads_count);
 }

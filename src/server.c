@@ -6,9 +6,9 @@
 #include <stdio.h>
 #include <pthread.h>
 
-noreturn void runserver(const int listen_fd) {
+noreturn void runserver(const int listen_fd, const unsigned int threads_count) {
     init_new_connections();
-    if (init_threads() == -1) {
+    if (init_threads(threads_count) == -1) {
         exit(EXIT_FAILURE);
     }
     for (;;) {
