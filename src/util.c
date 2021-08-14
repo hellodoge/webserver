@@ -13,9 +13,10 @@
 
 void access_log(size_t thread_number, http_request_t *request, http_response_t *response) {
     time_t current = time(NULL);
-    struct tm *local = localtime(&current);
+    struct tm local;
+    localtime_r(&current, &local);
     char buffer[TIME_BUFFER_LEN];
-    strftime(buffer, TIME_BUFFER_LEN, "%d %b %X", local);
+    strftime(buffer, TIME_BUFFER_LEN, "%d %b %X", &local);
     printf("thread %ld [%s]: %s %s %s > %d %s\n", thread_number, buffer, request->method,
             request->path, request->version, response->status, response->message);
     fflush(stdout);
